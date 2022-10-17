@@ -6,6 +6,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as modelzoo
 
+"""
+This code borrows heavily from github repository below
+zllrunning, face-parsing.PyTorch (2019)
+https://github.com/zllrunning/face-parsing.PyTorch
+"""
+
 # from modules.bn import InPlaceABNSync as BatchNorm2d
 
 resnet18_url = 'https://download.pytorch.org/models/resnet18-5c106cde.pth'
@@ -46,6 +52,7 @@ class BasicBlock(nn.Module):
         out = shortcut + residual
         out = self.relu(out)
         return out
+
 
 def create_layer_basic(in_chan, out_chan, bnum, stride=1):
     layers = [BasicBlock(in_chan, out_chan, stride=stride)]
