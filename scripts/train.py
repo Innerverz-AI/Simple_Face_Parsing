@@ -1,40 +1,20 @@
-from libs.checkpoint import load_checkpoint, save_checkpoint
-from libs.dataset import FaceDataset 
-from models.bisenet import BiSeNet
+import sys
+sys.path.append("./")
+
+from new.dataset import FaceDataset 
+from new.model import BiSeNet
+from new import utils
 
 import torch
 import torch.nn as nn
-import torchvision
 from torch.utils.data import DataLoader, random_split
 
-import os
-import cv2
-import sys
-import wandb
-
-def save_image(run_desc, global_step, dir, images):
-    dir_path = f'train_result/{run_desc}/{dir}'
-    os.makedirs(dir_path, exist_ok=True)
-    
-    sample_image = make_grid_image(images).detach().cpu().numpy().transpose([1,2,0]) * 255
-    cv2.imwrite(f'{dir_path}/{str(global_step).zfill(8)}.jpg', sample_image[:,:,::-1])
-
-def make_grid_image(images_list):
-    grid_rows = []
-
-    for i, images in enumerate(images_list):
-        images = images[:8] # Drop images if there are more than 8 images in the list
-        grid_row = torchvision.utils.make_grid(images, nrow=images.shape[0]) 
-        if i == 0: # image
-            grid_row = grid_row * 0.5 + 0.5
-        grid_rows.append(grid_row)
-
-    grid = torch.cat(grid_rows, dim=1)
-    return grid
+import torchvision.transforms as transforms
+GaussianBlur = transforms.GaussianBlur(kernel_size=25, sigma=(0.1, 5))
 
 def train(cfg):
     # Dataset
-    dataset = FaceDataset()
+    dataset = FaceDataset(cfg["dataroot"])
     trn_size = int(len(dataset) * 0.8)
     val_size = len(dataset) - trn_size
     trn_dataset, val_dataset = random_split(dataset, [trn_size, val_size])
@@ -45,11 +25,11 @@ def train(cfg):
     
     # Model
     net = BiSeNet(n_classes=cfg["num_classes"]).cuda().train()
-    ckpt = torch.load("./face_parsing/ckpt/faceparser.pth", map_location="cuda")
+    ckpt = torch.load("./old/ckpt/faceparser.pth", map_location="cuda")
     net.load_state_dict(ckpt, strict=False)
 
     # Loss function
-    criterion = nn.BCELoss() 
+    criterion = nn.BCELoss()
     optim = torch.optim.SGD(net.parameters(), lr=0.02)
 
     # Train loop
@@ -61,8 +41,10 @@ def train(cfg):
 
     loss_dict = {}
     trn_data_iterator = iter(trn_data_loader)
+    val_data_iterator = iter(val_data_loader)
 
     for global_step in range(max_step):
+        print(global_step)
         try:
             image, mask = next(trn_data_iterator)
         except StopIteration:
@@ -85,8 +67,13 @@ def train(cfg):
 
         # Validation
         if global_step % val_step == 0:
-            print(global_step)
-            val_image, val_mask = next(iter(val_data_loader))
+
+            try:
+                val_image, val_mask = next(val_data_iterator)
+            except StopIteration:
+                val_data_iterator = iter(val_data_loader)
+                val_image, val_mask = next(val_data_iterator)
+
             val_image, val_mask = val_image.cuda(), val_mask.cuda()
 
             with torch.no_grad():
@@ -96,29 +83,25 @@ def train(cfg):
 
             loss_dict["val_L_p"] = round(val_L_p.item(), 4)
             loss_dict["val_L_total"] = round(val_loss.item(), 4)
+            
+            print(loss_dict)
 
+            val_out = torch.where(GaussianBlur(val_out)>0.5, 1, 0)
             trn_images = [image, mask[:, 0, :, :].unsqueeze(1), mask[:, 1, :, :].unsqueeze(1), mask[:, 2, :, :].unsqueeze(1), mask[:, 3, :, :].unsqueeze(1), out[:, 0, :, :].unsqueeze(1), out[:, 1, :, :].unsqueeze(1), out[:, 2, :, :].unsqueeze(1), out[:, 3, :, :].unsqueeze(1)]
             val_images = [val_image, val_mask[:, 0, :, :].unsqueeze(1), val_mask[:, 1, :, :].unsqueeze(1), val_mask[:, 2, :, :].unsqueeze(1), val_mask[:, 3, :, :].unsqueeze(1), val_out[:, 0, :, :].unsqueeze(1), val_out[:, 1, :, :].unsqueeze(1), val_out[:, 2, :, :].unsqueeze(1), val_out[:, 3, :, :].unsqueeze(1)]
 
-            save_image(run_desc, global_step, "trn_imgs", trn_images)
-            save_image(run_desc, global_step, "val_imgs", val_images)
-
-            wandb.log(loss_dict)
+            utils.save_image(run_desc, global_step, "trn_imgs", trn_images)
+            utils.save_image(run_desc, global_step, "val_imgs", val_images)
 
         if global_step % ckpt_step == 0:
-            save_checkpoint(run_desc, net, optim, "BiSe", global_step)
+            utils.save_checkpoint(run_desc, net, optim, "BiSe", global_step)
 
 if __name__ == "__main__":
 
-    torch.manual_seed(1012)
-
-    # wandb init
-    run_id = sys.argv[1]
-    wandb.init(project="BiSeNet", name=run_id)
-
     # configs
     configs = {
-        "run_id": run_id,
+        "run_id": "sixth_try",
+        "dataroot": "/media/deep3090/hdd/mask_dataset",
         "num_classes": 4,
         "num_workers": 8,
         "batch_size" : 16,
@@ -127,7 +110,7 @@ if __name__ == "__main__":
         "initial_lr": 1e-2, 
         "log_step": 100,
         "val_step": 200,
-        "ckpt_step": 10000,
+        "ckpt_step": 1000,
     }
 
     train(configs)
