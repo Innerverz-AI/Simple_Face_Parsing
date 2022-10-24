@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 GaussianBlur = transforms.GaussianBlur(kernel_size=25, sigma=(0.1, 5))
 
 class FaceParser(nn.Module):
-    def __init__(self, file_PATH = '/home/deep3090/workspace/Simple_Face_Parsing/train_result/sixth_try/ckpt/BiSe_3000.pt'):
+    def __init__(self, file_PATH = '/home/deep3090/workspace/Simple_Face_Parsing/train_result/sixth_try/ckpt/BiSe_new.pt'):
     # def __init__(self, file_PATH = './new/ckpt/BiSe_10000.pt'):
         super(FaceParser, self).__init__()
         
