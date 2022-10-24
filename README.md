@@ -2,10 +2,7 @@
 Simplified version of [face-parsing.PyTorch](https://github.com/zllrunning/face-parsing.PyTorch).  
 We changed the output from a 19-channel tensor to a 4-channel tensor, including **Full-mask**, **Head-mask**, **Face-mask**, and **Inner-face-mask**.
 
-<p align="center">
-    <img src="./assets/grid_single.png" >
-	</a>
-</p>
+<p align="center"><img src="./assets/grid_single.png" ></p>
 
 ## Usage
 ```
@@ -16,7 +13,15 @@ python scripts/test.py
 python scripts/comparison.py
 ```
 
-# Difference
+# Comparison
+
+## Result
+1st row: sample images  
+2-5th row: facial masks obtained from the original model.  
+6-9th row: facial masks obtained from our model.  
+<p align="center"><img src="./assets/grid_image.png" ></p>
+
+
 ## Original
 The original model outputs 19-channel tensor [B, 19, H, W] and each index is matched to one of facial components as below
 
