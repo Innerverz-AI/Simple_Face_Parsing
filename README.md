@@ -26,15 +26,15 @@ python scripts/comparison.py
 The original model outputs 19-channel tensor [B, 19, H, W] and each index is matched to one of facial components as below
 
 |index|0|1|2|3|4|5|
-|---|---|---|---|---|---|---|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |component|background|skin|left_brow|right_brow|left_eye|right_eye|
 
 |index|6|7|8|9|10|11|
-|---|---|---|---|---|---|---|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |component|eye_glasses|left_ear|right_ear|ear_ring|nose|mouth|
 
 |index|12|13|14|15|16|17|18|
-|---|---|---|---|---|---|---|---|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |component|up_lip|down_lip|neck|neckless|cloth|hair|hat|
 
 ## Ours
